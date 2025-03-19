@@ -364,8 +364,35 @@ def main():
                                     all_matched_symptoms.update(matches)
 
                                     # Display matching details using custom container
+                                    st.markdown("""
+                                    <style>
+                                    .symptom-card {
+                                        background: linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+                                        border-radius: 15px;
+                                        padding: 20px;
+                                        margin: 15px 0;
+                                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                                    }
+                                    .match-category {
+                                        color: #48A6A7;
+                                        font-size: 1.1em;
+                                        margin: 10px 0;
+                                        border-bottom: 2px solid rgba(72,166,167,0.3);
+                                        padding-bottom: 5px;
+                                    }
+                                    .match-item {
+                                        background-color: rgba(198,231,255,0.1);
+                                        margin: 5px 0;
+                                        padding: 8px 15px;
+                                        border-radius: 8px;
+                                        display: inline-block;
+                                        margin-right: 10px;
+                                    }
+                                    </style>
+                                    """, unsafe_allow_html=True)
+                                    
                                     st.markdown(f"""
-                                    <div class="match-container">
+                                    <div class="symptom-card">
                                     <h4>Matches for '{symptom}'</h4>
                                     """, unsafe_allow_html=True)
 
@@ -476,13 +503,37 @@ def main():
                                 top_indices = probabilities.argsort()[-5:][::-1]
                                 predictions = st.session_state.label_encoder.inverse_transform(top_indices)
 
-                                st.markdown('<div class="prediction-card">', unsafe_allow_html=True)
-                                st.write("### 🎯 Top 5 Predicted Diseases")
-                                cols = st.columns(5)
+                                st.markdown("""
+                                    <style>
+                                    .prediction-item {
+                                        background-color: rgba(198, 231, 255, 0.2);
+                                        padding: 15px;
+                                        border-radius: 10px;
+                                        margin: 10px 0;
+                                        border-left: 5px solid #48A6A7;
+                                        transition: transform 0.2s;
+                                    }
+                                    .prediction-item:hover {
+                                        transform: translateX(10px);
+                                    }
+                                    </style>
+                                """, unsafe_allow_html=True)
+                                
+                                st.markdown("### 🎯 Top 5 Predicted Diseases")
                                 for i, (disease, prob) in enumerate(zip(predictions, probabilities[top_indices])):
-                                    with cols[i]:
-                                        st.metric(f"#{i+1}", disease, f"{prob*100:.1f}%")
-                                st.markdown('</div>', unsafe_allow_html=True)
+                                    st.markdown(f"""
+                                        <div class="prediction-item">
+                                            <h4>#{i+1} {disease}</h4>
+                                            <p style="color: #48A6A7; font-size: 1.2em;">{prob*100:.1f}% probability</p>
+                                        </div>
+                                    """, unsafe_allow_html=True)
+                                
+                                # Log predictions to database
+                                prediction_data = {
+                                    "symptoms": ", ".join(st.session_state.final_symptoms),
+                                    "predictions": ", ".join([f"{d} ({p*100:.1f}%)" for d, p in zip(predictions, probabilities[top_indices])])
+                                }
+                                log_action(st.session_state.username, "Disease Prediction", str(prediction_data))
 
                                 log_action(st.session_state.username, "Prediction",
                                          f"Symptoms: {', '.join(st.session_state.final_symptoms)}")
