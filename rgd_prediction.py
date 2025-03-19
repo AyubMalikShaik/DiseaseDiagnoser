@@ -102,7 +102,15 @@ if download_nltk_resources():
 # NLP utilities
 lemmatizer = WordNetLemmatizer()
 splitter = RegexpTokenizer(r'\w+')
-stop_words = stopwords.words('english')
+# Initialize NLTK resources
+try:
+    stop_words = set(stopwords.words('english'))
+except LookupError:
+    nltk.download('stopwords')
+    nltk.download('wordnet')
+    nltk.download('omw-1.4')
+    stop_words = set(stopwords.words('english'))
+
 try:
     nlp = spacy.load("en_core_web_md")
 except Exception as e:
