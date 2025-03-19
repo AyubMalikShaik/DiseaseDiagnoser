@@ -10,13 +10,13 @@ from nltk.corpus import wordnet, stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import RegexpTokenizer
 from fuzzywuzzy import process
-from database_operations import init_db, login, logout, register, log_action, display_history
 
 # Add these imports at the top of the file
 from Neighbors import (buildGraph, buildGraphWithWeights, find_directly_related_symptoms,
                       display_most_freq_symptoms, display_strongly_connected_symptoms,
                       visualize_3d_symptom_graph)
 from display_communities import display_clusters
+from database_operations import init_db, login, logout, register, log_action, display_history
 
 # Page config with improved styling
 st.set_page_config(
