@@ -3,17 +3,30 @@ import streamlit as st
 
 # Directory containing community HTML files
 def display_clusters():
-    HTML_DIR = "community_htmls"  # Directory containing community HTML files
+    HTML_DIR = "community_htmls"
 
-    # Load community data
-    communities = {
-        0: ['anxiety and nervousness', 'depression', 'depressive or psychotic symptoms', 'insomnia'],
-        1: ['shortness of breath', 'sharp chest pain', 'dizziness', 'chest tightness'],
-        2: ['hoarse voice', 'sore throat', 'cough', 'nasal congestion'],
-        3: ['nausea', 'vomiting', 'diarrhea', 'abdominal pain'],
-        4: ['skin rash', 'itching', 'swelling', 'redness'],
-        # Additional communities can be dynamically loaded from HTML files
-    }
+    st.write("### Symptom Communities Visualization")
+    
+    # Load all community HTML files
+    community_files = [f for f in os.listdir(HTML_DIR) if f.startswith("community_") and f.endswith(".html")]
+    community_numbers = sorted([int(f.split("_")[1].split(".")[0]) for f in community_files])
+    
+    # Create a dropdown to select community
+    selected_community = st.selectbox(
+        "Select a community to visualize:",
+        community_numbers,
+        format_func=lambda x: f"Community {x}"
+    )
+    
+    # Display the selected community visualization
+    if selected_community is not None:
+        html_path = os.path.join(HTML_DIR, f"community_{selected_community}.html")
+        if os.path.exists(html_path):
+            with open(html_path, "r", encoding="utf-8") as html_file:
+                html_content = html_file.read()
+            st.components.v1.html(html_content, height=600, scrolling=True)
+        else:
+            st.error("Community visualization not found.")
 
     st.title("Community Graph Visualizations")
 
