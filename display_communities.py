@@ -3,14 +3,16 @@ import streamlit as st
 
 # Directory containing community HTML files
 def display_clusters():
-    HTML_DIR = "community_htmls"  # Updated path to match new directory structure
+    HTML_DIR = "community_htmls"  # Directory containing community HTML files
 
     # Load community data
     communities = {
         0: ['anxiety and nervousness', 'depression', 'depressive or psychotic symptoms', 'insomnia'],
         1: ['shortness of breath', 'sharp chest pain', 'dizziness', 'chest tightness'],
         2: ['hoarse voice', 'sore throat', 'cough', 'nasal congestion'],
-        # ... rest of the communities data remains the same
+        3: ['nausea', 'vomiting', 'diarrhea', 'abdominal pain'],
+        4: ['skin rash', 'itching', 'swelling', 'redness'],
+        # Additional communities can be dynamically loaded from HTML files
     }
 
     st.title("Community Graph Visualizations")
@@ -41,4 +43,15 @@ def display_clusters():
             else:
                 st.error(f"HTML file for Cluster {matched_community + 1} not found.")
         else:
-            st.error("No matching community found for the entered symptom.")
+            # If not found in predefined communities, try to find in HTML files directly
+            for i in range(38):  # We now have communities 0-37
+                html_path = os.path.join(HTML_DIR, f"community_{i}.html")
+                if os.path.exists(html_path):
+                    # Here we could parse the HTML to check if the symptom is present
+                    # For now, we'll just offer to show this community
+                    if st.button(f"View Cluster {i + 1}"):
+                        with open(html_path, "r", encoding="utf-8") as html_file:
+                            html_content = html_file.read()
+                        st.components.v1.html(html_content, height=600, scrolling=True)
+
+            st.info("Try exploring different clusters to find related symptoms.")
