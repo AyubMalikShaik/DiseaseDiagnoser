@@ -320,46 +320,68 @@ def main():
 
                     with st.spinner("Finding related symptoms..."):
                         all_matched_symptoms = set()
+
+                        # Add custom CSS for match display
+                        st.markdown("""
+                        <style>
+                        .match-container {
+                            background-color: rgba(198, 231, 255, 0.2);
+                            padding: 15px;
+                            border-radius: 10px;
+                            margin: 10px 0;
+                            border: 1px solid #48A6A7;
+                        }
+                        .match-category { 
+                            color: #384B70; 
+                            font-weight: bold;
+                            margin-top: 10px;
+                        }
+                        .match-item { 
+                            margin-left: 20px; 
+                            color: #48A6A7;
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
+
                         for symptom in processed_symptoms:
                             if symptom:  # Skip empty strings
                                 matches = find_related_symptoms(symptom)
                                 if matches:
                                     all_matched_symptoms.update(matches)
 
-                                    # Display matching details
-                                    with st.expander(f"Matches for '{symptom}'", expanded=True):
-                                        st.markdown("""
-                                        <style>
-                                        .match-category { color: #384B70; font-weight: bold; }
-                                        .match-item { margin-left: 20px; color: #48A6A7; }
-                                        </style>
-                                        """, unsafe_allow_html=True)
+                                    # Display matching details using custom container
+                                    st.markdown(f"""
+                                    <div class="match-container">
+                                    <h4>Matches for '{symptom}'</h4>
+                                    """, unsafe_allow_html=True)
 
-                                        # Group matches by type
-                                        exact = [m for m in matches if m.lower() == symptom.lower()]
-                                        fuzzy = fuzzy_match_symptoms(symptom, dataset_symptoms)
-                                        semantic = meaning_based_match(symptom, dataset_symptoms)
-                                        body_part = get_body_part_matches(symptom, dataset_symptoms)
+                                    # Group matches by type
+                                    exact = [m for m in matches if m.lower() == symptom.lower()]
+                                    fuzzy = fuzzy_match_symptoms(symptom, dataset_symptoms)
+                                    semantic = meaning_based_match(symptom, dataset_symptoms)
+                                    body_part = get_body_part_matches(symptom, dataset_symptoms)
 
-                                        if exact:
-                                            st.markdown("<p class='match-category'>Exact Matches:</p>", unsafe_allow_html=True)
-                                            for m in exact:
-                                                st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+                                    if exact:
+                                        st.markdown("<p class='match-category'>Exact Matches:</p>", unsafe_allow_html=True)
+                                        for m in exact:
+                                            st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
 
-                                        if fuzzy:
-                                            st.markdown("<p class='match-category'>Similar Symptoms:</p>", unsafe_allow_html=True)
-                                            for m in fuzzy:
-                                                st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+                                    if fuzzy:
+                                        st.markdown("<p class='match-category'>Similar Symptoms:</p>", unsafe_allow_html=True)
+                                        for m in fuzzy:
+                                            st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
 
-                                        if semantic:
-                                            st.markdown("<p class='match-category'>Related Symptoms:</p>", unsafe_allow_html=True)
-                                            for m in semantic:
-                                                st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+                                    if semantic:
+                                        st.markdown("<p class='match-category'>Related Symptoms:</p>", unsafe_allow_html=True)
+                                        for m in semantic:
+                                            st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
 
-                                        if body_part:
-                                            st.markdown("<p class='match-category'>Body Part Related:</p>", unsafe_allow_html=True)
-                                            for m in body_part:
-                                                st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+                                    if body_part:
+                                        st.markdown("<p class='match-category'>Body Part Related:</p>", unsafe_allow_html=True)
+                                        for m in body_part:
+                                            st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+
+                                    st.markdown("</div>", unsafe_allow_html=True)
 
                         st.session_state.matched_symptoms = list(all_matched_symptoms)
 
