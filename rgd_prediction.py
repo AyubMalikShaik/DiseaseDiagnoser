@@ -12,6 +12,12 @@ from nltk.tokenize import RegexpTokenizer
 from fuzzywuzzy import process
 from database_operations import init_db, login, logout, register, log_action, display_history
 
+# Add these imports at the top of the file
+from Neighbors import (buildGraph, buildGraphWithWeights, find_directly_related_symptoms,
+                      display_most_freq_symptoms, display_strongly_connected_symptoms,
+                      visualize_3d_symptom_graph)
+from display_communities import display_clusters
+
 # Page config with improved styling
 st.set_page_config(
     page_title="Disease Prediction System",
@@ -434,8 +440,95 @@ def main():
 
         elif option == "Community Visualization":
             st.title("Symptom Communities")
-            st.info("🚧 This feature is coming soon!")
-            st.text_input("Search for a symptom:", key="community_search")
+
+            # Add tabs for different visualizations
+            viz_tab1, viz_tab2, viz_tab3 = st.tabs([
+                "🔍 Symptom Search",
+                "🌐 Network Analysis",
+                "👥 Communities"
+            ])
+
+            with viz_tab1:
+                search_symptom = st.text_input(
+                    "Search for a symptom:",
+                    key="community_search",
+                    help="Enter a symptom to see its relationships"
+                )
+
+                if search_symptom:
+                    try:
+                        # Build weighted graph
+                        G = buildGraphWithWeights()
+
+                        # Display options
+                        analysis_type = st.radio(
+                            "Choose analysis type:",
+                            ["Most Frequent Connections", "Strongest Relationships"],
+                            horizontal=True
+                        )
+
+                        count = st.slider("Number of connections to show", 5, 20, 10)
+
+                        # Show visualization based on selection
+                        with st.spinner("Generating visualization..."):
+                            if analysis_type == "Most Frequent Connections":
+                                fig = display_most_freq_symptoms(G, search_symptom, count)
+                            else:
+                                fig = display_strongly_connected_symptoms(G, search_symptom, count)
+
+                            # Display the plotly figure
+                            st.plotly_chart(fig, use_container_width=True)
+
+                            # Show directly related symptoms
+                            related = find_directly_related_symptoms(G, search_symptom)
+                            if related:
+                                st.markdown("### 🔗 Directly Related Symptoms")
+                                for symptom in related[:10]:  # Show top 10
+                                    st.markdown(f"- {symptom}")
+
+                                if len(related) > 10:
+                                    with st.expander("See more..."):
+                                        for symptom in related[10:]:
+                                            st.markdown(f"- {symptom}")
+
+                    except KeyError:
+                        st.warning("Symptom not found in the database. Please try another term.")
+                    except Exception as e:
+                        st.error(f"Error generating visualization: {str(e)}")
+
+            with viz_tab2:
+                st.markdown("""
+                ### 🌐 Network Analysis
+                Explore the relationships between symptoms through network analysis.
+                This visualization shows how different symptoms are connected based on
+                their co-occurrence in diagnoses.
+                """)
+
+                if st.button("Generate Network Overview"):
+                    with st.spinner("Building network visualization..."):
+                        try:
+                            G = buildGraph()
+                            # Generate and display a sample subgraph
+                            sample_symptoms = list(G.nodes())[:20]  # Take first 20 symptoms
+                            sub_G = G.subgraph(sample_symptoms)
+                            fig = visualize_3d_symptom_graph(sub_G, sample_symptoms[0])
+                            st.plotly_chart(fig, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Error generating network overview: {str(e)}")
+
+            with viz_tab3:
+                st.markdown("""
+                ### 👥 Symptom Communities
+                Discover groups of symptoms that commonly occur together.
+                These communities can help understand patterns in symptom relationships.
+                """)
+
+                if st.button("Show Communities"):
+                    with st.spinner("Analyzing symptom communities..."):
+                        try:
+                            display_clusters()
+                        except Exception as e:
+                            st.error(f"Error displaying communities: {str(e)}")
 
         elif option == "History":
             st.title("Your History")
