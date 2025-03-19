@@ -103,58 +103,111 @@ except Exception as e:
     st.error(f"Error loading spaCy model: {str(e)}")
     st.stop()
 
-# Symptom matching functions
+# Enhanced symptom matching functions
 @st.cache_data
 def get_synonyms(term):
+    """Get synonyms for a term using WordNet."""
     try:
         synonyms = set()
-        for syn in wordnet.synsets(term):
+        for syn in wordnet.synsets(term, pos=wordnet.NOUN):
             synonyms.update(syn.lemma_names())
+            # Include hypernyms (more general terms)
+            for hypernym in syn.hypernyms():
+                synonyms.update(hypernym.lemma_names())
         return list(synonyms)
     except Exception as e:
         st.warning(f"Error getting synonyms: {str(e)}")
         return []
 
 @st.cache_data
-def meaning_based_match(user_input, dataset):
+def meaning_based_match(user_input, dataset, threshold=0.85):
+    """Match symptoms based on semantic similarity using spaCy."""
     try:
         related_symptoms = []
-        user_input_vec = nlp(user_input).vector
+        user_input_doc = nlp(user_input)
+
         for symptom in dataset:
-            sym_vec = nlp(symptom).vector
-            similarity = user_input_vec.dot(sym_vec) / (nlp(symptom).vector_norm * nlp(user_input).vector_norm)
-            if similarity > 0.95:
-                related_symptoms.append(symptom)
-        return related_symptoms
+            symptom_doc = nlp(symptom)
+            similarity = user_input_doc.similarity(symptom_doc)
+            if similarity > threshold:
+                related_symptoms.append((symptom, similarity))
+
+        # Sort by similarity score
+        related_symptoms.sort(key=lambda x: x[1], reverse=True)
+        return [symptom for symptom, _ in related_symptoms[:5]]
     except Exception as e:
         st.warning(f"Error in meaning based matching: {str(e)}")
         return []
 
 @st.cache_data
-def fuzzy_match_symptoms(user_input, dataset, threshold=80):
+def fuzzy_match_symptoms(user_input, dataset, threshold=75):
+    """Match symptoms using fuzzy string matching."""
     try:
         matched = process.extractBests(user_input, dataset, score_cutoff=threshold)
-        return [match[0] for match in matched]
+        return [match[0] for match in matched[:5]]  # Return top 5 matches
     except Exception as e:
         st.warning(f"Error in fuzzy matching: {str(e)}")
         return []
 
+def get_body_part_matches(user_input, dataset):
+    """Match symptoms based on body parts mentioned."""
+    body_parts = {
+        'head': ['head', 'brain', 'skull'],
+        'chest': ['chest', 'breast', 'thorax'],
+        'stomach': ['stomach', 'abdomen', 'belly'],
+        'throat': ['throat', 'neck', 'pharynx'],
+        'skin': ['skin', 'dermal', 'cutaneous'],
+        'eye': ['eye', 'vision', 'ocular'],
+        'ear': ['ear', 'hearing', 'auditory'],
+        'nose': ['nose', 'nasal', 'sinus'],
+        'mouth': ['mouth', 'oral', 'tongue'],
+        'arm': ['arm', 'hand', 'wrist'],
+        'leg': ['leg', 'foot', 'ankle'],
+        'joint': ['joint', 'bone', 'muscle']
+    }
+
+    matches = []
+    user_tokens = set(user_input.lower().split())
+
+    for part, related_terms in body_parts.items():
+        if any(term in user_input.lower() for term in related_terms):
+            # Find symptoms that mention this body part or related terms
+            for symptom in dataset:
+                if any(term in symptom.lower() for term in related_terms):
+                    matches.append(symptom)
+
+    return list(set(matches))  # Remove duplicates
+
 def find_related_symptoms(user_input):
+    """Find related symptoms using multiple matching strategies."""
     user_input = user_input.lower().strip()
     related_symptoms = set()
 
+    # Direct match
     if user_input in dataset_symptoms:
         related_symptoms.add(user_input)
 
+    # Synonym-based matching
     synonyms = get_synonyms(user_input)
     for syn in synonyms:
-        if syn in dataset_symptoms:
+        if syn.lower() in [s.lower() for s in dataset_symptoms]:
             related_symptoms.add(syn)
 
-    related_symptoms.update(fuzzy_match_symptoms(user_input, dataset_symptoms))
-    related_symptoms.update(meaning_based_match(user_input, dataset_symptoms))
+    # Fuzzy matching
+    fuzzy_matches = fuzzy_match_symptoms(user_input, dataset_symptoms)
+    related_symptoms.update(fuzzy_matches)
 
-    return list(related_symptoms)
+    # Semantic similarity matching
+    semantic_matches = meaning_based_match(user_input, dataset_symptoms)
+    related_symptoms.update(semantic_matches)
+
+    # Body part matching
+    body_part_matches = get_body_part_matches(user_input, dataset_symptoms)
+    related_symptoms.update(body_part_matches)
+
+    # Filter out any non-existing symptoms
+    final_symptoms = [s for s in related_symptoms if s in dataset_symptoms]
+    return list(set(final_symptoms))  # Remove duplicates
 
 # Main application UI
 def main():
@@ -254,31 +307,76 @@ def main():
 
             # Symptom input section
             with st.expander("Step 2: Input Symptoms", expanded=True):
-                st.text_input(
-                    "Enter symptoms separated by commas:",
+                user_input = st.text_input(
+                    "Enter symptoms:",
                     value=st.session_state.user_input,
                     key="temp_user_input",
                     help="Example: fever, cough, headache"
                 )
 
-                if st.session_state.user_input:
-                    processed_symptoms = [s.strip().lower() for s in st.session_state.user_input.split(",")]
-                    matched_symptoms = set()
+                if user_input:
+                    st.session_state.user_input = user_input
+                    processed_symptoms = [s.strip().lower() for s in user_input.split(",")]
 
                     with st.spinner("Finding related symptoms..."):
+                        all_matched_symptoms = set()
                         for symptom in processed_symptoms:
-                            matched_symptoms.update(find_related_symptoms(symptom))
+                            if symptom:  # Skip empty strings
+                                matches = find_related_symptoms(symptom)
+                                if matches:
+                                    all_matched_symptoms.update(matches)
 
-                    st.session_state.matched_symptoms = list(matched_symptoms)
+                                    # Display matching details
+                                    with st.expander(f"Matches for '{symptom}'", expanded=True):
+                                        st.markdown("""
+                                        <style>
+                                        .match-category { color: #384B70; font-weight: bold; }
+                                        .match-item { margin-left: 20px; color: #48A6A7; }
+                                        </style>
+                                        """, unsafe_allow_html=True)
 
-                    selected_symptoms = st.multiselect(
-                        "Select matching symptoms:",
-                        options=st.session_state.matched_symptoms,
-                        default=st.session_state.selected_symptoms
-                    )
+                                        # Group matches by type
+                                        exact = [m for m in matches if m.lower() == symptom.lower()]
+                                        fuzzy = fuzzy_match_symptoms(symptom, dataset_symptoms)
+                                        semantic = meaning_based_match(symptom, dataset_symptoms)
+                                        body_part = get_body_part_matches(symptom, dataset_symptoms)
 
-                    if selected_symptoms != st.session_state.selected_symptoms:
-                        st.session_state.selected_symptoms = selected_symptoms
+                                        if exact:
+                                            st.markdown("<p class='match-category'>Exact Matches:</p>", unsafe_allow_html=True)
+                                            for m in exact:
+                                                st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+
+                                        if fuzzy:
+                                            st.markdown("<p class='match-category'>Similar Symptoms:</p>", unsafe_allow_html=True)
+                                            for m in fuzzy:
+                                                st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+
+                                        if semantic:
+                                            st.markdown("<p class='match-category'>Related Symptoms:</p>", unsafe_allow_html=True)
+                                            for m in semantic:
+                                                st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+
+                                        if body_part:
+                                            st.markdown("<p class='match-category'>Body Part Related:</p>", unsafe_allow_html=True)
+                                            for m in body_part:
+                                                st.markdown(f"<p class='match-item'>• {m}</p>", unsafe_allow_html=True)
+
+                        st.session_state.matched_symptoms = list(all_matched_symptoms)
+
+                        # Selection of symptoms
+                        if st.session_state.matched_symptoms:
+                            st.markdown("### Select Symptoms for Prediction")
+                            selected_symptoms = st.multiselect(
+                                "Choose the relevant symptoms:",
+                                options=sorted(st.session_state.matched_symptoms),
+                                default=st.session_state.selected_symptoms,
+                                help="Select all symptoms that apply"
+                            )
+
+                            if selected_symptoms != st.session_state.selected_symptoms:
+                                st.session_state.selected_symptoms = selected_symptoms
+                        else:
+                            st.warning("No matching symptoms found. Please try different terms.")
 
             # Prediction section
             with st.expander("Step 3: Get Prediction", expanded=True):
