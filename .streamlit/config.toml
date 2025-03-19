@@ -1,0 +1,23 @@
+[server]
+headless = true
+address = "0.0.0.0"
+port = 5000
+
+[theme]
+# Primary accent color for buttons
+primaryColor = "#48A6A7"
+
+# Background color for main content area
+backgroundColor = "#E8F9FF"
+
+# Background color for sidebar and interactive widgets
+secondaryBackgroundColor = "#C6E7FF"
+
+# Text color
+textColor = "#384B70"
+
+# Font styles
+font = "sans serif"
+
+[runner]
+magicEnabled = true
