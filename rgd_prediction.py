@@ -14,7 +14,7 @@ from fuzzywuzzy import process
 # Add these imports at the top of the file
 from Neighbors import (buildGraph, buildGraphWithWeights, find_directly_related_symptoms,
                       display_most_freq_symptoms, display_strongly_connected_symptoms,
-                      visualize_3d_symptom_graph)
+                      visualize_3d_symptom_graph, find_most_frequent_symptoms, find_strongest_connections)
 from display_communities import display_clusters
 from database_operations import init_db, login, logout, register, log_action, display_history
 
@@ -403,21 +403,64 @@ def main():
 
                             if selected_symptoms != st.session_state.selected_symptoms:
                                 st.session_state.selected_symptoms = selected_symptoms
-                        else:
-                            st.warning("No matching symptoms found. Please try different terms.")
+
+            # Show related symptoms graphs after selection
+            if st.session_state.selected_symptoms:
+                st.markdown("### 🔍 Analyze Related Symptoms")
+                G = buildGraph()
+                WG = buildGraphWithWeights()
+
+                final_selected_symptoms = set(st.session_state.selected_symptoms)
+
+                for symptom in st.session_state.selected_symptoms:
+                    st.markdown(f"#### Analysis for: {symptom}")
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.markdown("**Most Frequent Co-occurring Symptoms**")
+                        fig1 = display_most_freq_symptoms(WG, symptom, 8)
+                        st.plotly_chart(fig1, use_container_width=True)
+
+                        # Select additional symptoms from frequent co-occurrences
+                        freq_symptoms = [s for s, _ in find_most_frequent_symptoms(WG, symptom, 8)]
+                        selected_freq = st.multiselect(
+                            "Select additional frequent symptoms:",
+                            options=freq_symptoms,
+                            key=f"freq_{symptom}"
+                        )
+                        final_selected_symptoms.update(selected_freq)
+
+                    with col2:
+                        st.markdown("**Strongest Connected Symptoms**")
+                        fig2 = display_strongly_connected_symptoms(WG, symptom, 8)
+                        st.plotly_chart(fig2, use_container_width=True)
+
+                        # Select additional symptoms from strong connections
+                        strong_symptoms = [s for s, _ in find_strongest_connections(WG, symptom, 8)]
+                        selected_strong = st.multiselect(
+                            "Select additional strongly connected symptoms:",
+                            options=strong_symptoms,
+                            key=f"strong_{symptom}"
+                        )
+                        final_selected_symptoms.update(selected_strong)
+
+                st.session_state.final_symptoms = list(final_selected_symptoms)
+                st.markdown("### 🎯 Final Selected Symptoms")
+                st.write(st.session_state.final_symptoms)
+
 
             # Prediction section
             with st.expander("Step 3: Get Prediction", expanded=True):
                 if st.button("Predict Disease"):
                     if not st.session_state.model:
                         st.error("Please train the model first.")
-                    elif not st.session_state.selected_symptoms:
+                    elif not st.session_state.final_symptoms:
                         st.warning("Please select at least one symptom.")
                     else:
                         with st.spinner("Analyzing symptoms..."):
                             try:
                                 sample_x = [0] * len(dataset_symptoms)
-                                for symptom in st.session_state.selected_symptoms:
+                                for symptom in st.session_state.final_symptoms:
                                     if symptom in dataset_symptoms:
                                         sample_x[dataset_symptoms.index(symptom)] = 1
 
@@ -434,7 +477,7 @@ def main():
                                 st.markdown('</div>', unsafe_allow_html=True)
 
                                 log_action(st.session_state.username, "Prediction",
-                                         f"Symptoms: {', '.join(st.session_state.selected_symptoms)}")
+                                         f"Symptoms: {', '.join(st.session_state.final_symptoms)}")
                             except Exception as e:
                                 st.error(f"Error during prediction: {str(e)}")
 
