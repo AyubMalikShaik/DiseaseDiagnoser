@@ -419,7 +419,7 @@ def main():
                     with col1:
                         st.markdown("**Most Frequent Co-occurring Symptoms**")
                         fig1 = display_most_freq_symptoms(WG, symptom, 8)
-                        st.plotly_chart(fig1, use_container_width=True)
+                        st.plotly_chart(fig1, use_container_width=True, key=f"freq_plot_{symptom}")
 
                         # Select additional symptoms from frequent co-occurrences
                         freq_symptoms = [s for s, _ in find_most_frequent_symptoms(WG, symptom, 8)]
@@ -433,7 +433,7 @@ def main():
                     with col2:
                         st.markdown("**Strongest Connected Symptoms**")
                         fig2 = display_strongly_connected_symptoms(WG, symptom, 8)
-                        st.plotly_chart(fig2, use_container_width=True)
+                        st.plotly_chart(fig2, use_container_width=True, key=f"strong_plot_{symptom}")
 
                         # Select additional symptoms from strong connections
                         strong_symptoms = [s for s, _ in find_strongest_connections(WG, symptom, 8)]
