@@ -5,7 +5,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "python -m spacy download en_core_web_md && streamlit run rgd_prediction.py --server.port 5000"]
+run = ["sh", "-c", "streamlit run rgd_prediction.py --server.port 5000"]
 
 [workflows]
 runButton = "Project"
@@ -31,7 +31,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python -m spacy download en_core_web_md && streamlit run rgd_prediction.py --server.port 5000"
+args = "streamlit run rgd_prediction.py --server.port 5000"
 waitForPort = 5000
 
 [[ports]]

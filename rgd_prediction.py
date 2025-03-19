@@ -10,7 +10,7 @@ from nltk.corpus import wordnet, stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import RegexpTokenizer
 from fuzzywuzzy import process
-from database_operations import *
+from database_operations import init_db, login, logout, register, log_action, display_history
 
 # Page config with improved styling
 st.set_page_config(
@@ -229,9 +229,9 @@ def main():
         option = st.sidebar.selectbox(
             "Navigation",
             ["Disease Prediction", "Community Visualization", "History"],
-            format_func=lambda x: f"📊 {x}" if x == "Community Visualization" 
-                                else f"🏥 {x}" if x == "Disease Prediction"
-                                else f"📜 {x}"
+            format_func=lambda x: f"📊 {x}" if x == "Community Visualization"
+            else f"🏥 {x}" if x == "Disease Prediction"
+            else f"📜 {x}"
         )
 
         if st.sidebar.button("Logout"):
@@ -307,7 +307,7 @@ def main():
                                         st.metric(f"#{i+1}", disease, f"{prob*100:.1f}%")
                                 st.markdown('</div>', unsafe_allow_html=True)
 
-                                log_action(st.session_state.username, "Prediction", 
+                                log_action(st.session_state.username, "Prediction",
                                          f"Symptoms: {', '.join(st.session_state.selected_symptoms)}")
                             except Exception as e:
                                 st.error(f"Error during prediction: {str(e)}")

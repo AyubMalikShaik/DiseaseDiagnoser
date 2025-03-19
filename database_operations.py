@@ -34,7 +34,8 @@ def init_db():
 init_db()
 
 # User management functions
-def register_user(username, password, email=""):
+def register(username, password, email=""):
+    """Register a new user in the database."""
     if not username or not password:
         st.error("Username and password are required.")
         return False
@@ -56,6 +57,7 @@ def register_user(username, password, email=""):
         conn.close()
 
 def verify_user(username, password):
+    """Verify user credentials."""
     if not username or not password:
         st.error("Please enter both username and password.")
         return False
@@ -73,6 +75,7 @@ def verify_user(username, password):
 
 # History management
 def log_action(username, action, data):
+    """Log a user action in the history table."""
     conn = sqlite3.connect("app_data.db")
     cursor = conn.cursor()
     cursor.execute(
@@ -83,6 +86,7 @@ def log_action(username, action, data):
     conn.close()
 
 def get_user_history(username):
+    """Get the history of user actions."""
     conn = sqlite3.connect("app_data.db")
     query = """
         SELECT action, data, timestamp 
@@ -95,6 +99,7 @@ def get_user_history(username):
     return df
 
 def display_history(username):
+    """Display user history with improved styling."""
     history_df = get_user_history(username)
 
     if history_df.empty:
@@ -132,6 +137,7 @@ def display_history(username):
 
 # Session management
 def login(username, password):
+    """Log in a user."""
     if verify_user(username, password):
         st.session_state.logged_in = True
         st.session_state.username = username
@@ -141,6 +147,7 @@ def login(username, password):
         st.error("Invalid username or password.")
 
 def logout():
+    """Log out a user and clear session state."""
     st.session_state.logged_in = False
     st.session_state.username = None
     # Clear all session state variables
