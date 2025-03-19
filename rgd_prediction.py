@@ -390,7 +390,7 @@ def main():
                                     }
                                     </style>
                                     """, unsafe_allow_html=True)
-                                    
+
                                     st.markdown(f"""
                                     <div class="symptom-card">
                                     <h4>Matches for '{symptom}'</h4>
@@ -518,7 +518,7 @@ def main():
                                     }
                                     </style>
                                 """, unsafe_allow_html=True)
-                                
+
                                 st.markdown("### 🎯 Top 5 Predicted Diseases")
                                 for i, (disease, prob) in enumerate(zip(predictions, probabilities[top_indices])):
                                     st.markdown(f"""
@@ -527,7 +527,7 @@ def main():
                                             <p style="color: #48A6A7; font-size: 1.2em;">{prob*100:.1f}% probability</p>
                                         </div>
                                     """, unsafe_allow_html=True)
-                                
+
                                 # Log predictions to database
                                 prediction_data = {
                                     "symptoms": ", ".join(st.session_state.final_symptoms),
